@@ -1,4 +1,3 @@
-// app/(home)/page.tsx
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -6,15 +5,11 @@ import {
   ArrowRight,
   Timer,
   SlidersHorizontal,
-  Beef,
-  Pizza,
-  Soup,
-  CupSoda,
-  IceCreamCone,
   ChefHat,
   Bike,
 } from "lucide-react";
 import ReviewCarousel from "./components/ReviewCarousel";
+import api from "./lib/axios";
 
 export const metadata: Metadata = {
   title: "Kettle & Bun | Burgers, Pizza & More Delivered Fresh",
@@ -30,78 +25,36 @@ export const metadata: Metadata = {
   },
 };
 
-const categories = [
-  {
-    name: "Burgers",
-    icon: Beef,
-    img: "https://images.unsplash.com/photo-1553979459-d2229ba7433a?w=400&q=80",
-  },
-  {
-    name: "Pizza",
-    icon: Pizza,
-    img: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=400&q=80",
-  },
-  {
-    name: "Sides",
-    icon: Soup,
-    img: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=400&q=80",
-  },
-  {
-    name: "Drinks",
-    icon: CupSoda,
-    img: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&q=80",
-  },
-  {
-    name: "Desserts",
-    icon: IceCreamCone,
-    img: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=400&q=80",
-  },
-];
+interface Upload {
+  id: string;
+  path: string;
+}
 
-const popularItems = [
-  {
-    id: 1,
-    category: "Burgers",
-    name: "Classic Cheeseburger",
-    price: "8.50",
-    img: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80",
-  },
-  {
-    id: 2,
-    category: "Burgers",
-    name: "Smoky BBQ Burger",
-    price: "9.25",
-    img: "https://images.unsplash.com/photo-1553979459-d2229ba7433a?w=500&q=80",
-  },
-  {
-    id: 5,
-    category: "Pizza",
-    name: "Pepperoni Pizza",
-    price: "12.50",
-    img: "https://images.unsplash.com/photo-1628840042765-356cda07504e?w=500&q=80",
-  },
-  {
-    id: 7,
-    category: "Sides",
-    name: "Crispy Fries",
-    price: "4.00",
-    img: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=500&q=80",
-  },
-  {
-    id: 11,
-    category: "Drinks",
-    name: "Fresh Lemonade",
-    price: "2.25",
-    img: "https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=500&q=80",
-  },
-  {
-    id: 13,
-    category: "Desserts",
-    name: "Chocolate Brownie",
-    price: "4.75",
-    img: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&q=80",
-  },
-];
+interface Category {
+  id: string;
+  name: string;
+  coverImage: string;
+}
+
+interface CategoryResponse {
+  status: number;
+  message: string;
+  data: Category[];
+}
+
+interface FeaturedProduct {
+  id: string;
+  category: string;
+  name: string;
+  price: number;
+  img: string;
+}
+
+interface FeaturedResponse {
+  status: number;
+  message: string;
+  data: FeaturedProduct[];
+}
 
 const steps = [
   {
@@ -124,7 +77,15 @@ const steps = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const [categoriesRes, featuredRes] = await Promise.all([
+    api.get<CategoryResponse>("/categories/all"),
+    api.get<FeaturedResponse>("/products/featured"),
+  ]);
+
+  const categories = categoriesRes.data.data;
+  const featuredProducts = featuredRes.data.data;
+
   return (
     <>
       <section className="max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-20 grid lg:grid-cols-2 gap-12 items-center">
@@ -181,20 +142,20 @@ export default function Home() {
             <ul className="font-mono text-xs text-[var(--ink)]/70 space-y-1.5">
               <li className="flex justify-between">
                 <span>2x Cheeseburger</span>
-                <span>17.00</span>
+                <span>₦9,000</span>
               </li>
               <li className="flex justify-between">
                 <span>1x Fries</span>
-                <span>4.00</span>
+                <span>₦1,800</span>
               </li>
               <li className="flex justify-between">
                 <span>1x Lemonade</span>
-                <span>2.25</span>
+                <span>₦900</span>
               </li>
             </ul>
             <div className="border-t border-dashed border-[var(--line)] mt-3 pt-3 flex justify-between font-mono text-xs font-bold text-[var(--ink)]">
               <span>Total</span>
-              <span>$23.25</span>
+              <span>₦11,700</span>
             </div>
           </div>
         </div>
@@ -208,22 +169,22 @@ export default function Home() {
           What are you in the mood for?
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {categories.map(({ name, icon: Icon, img }, i) => (
+          {categories.map(({ name, id, coverImage }, i) => (
             <Link
-              key={name}
-              href={`/order?category=${name}`}
+              key={id}
+              href={`/order?category=${id}`}
               className={`group relative rounded-2xl overflow-hidden h-36 ${
                 i === categories.length - 1 ? "col-span-2 md:col-span-1" : ""
               }`}
             >
               <img
-                src={img}
+                src={coverImage}
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 alt={name}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
               <div className="absolute bottom-3 left-4 flex items-center gap-2 text-white font-medium text-sm">
-                <Icon className="w-4 h-4" /> {name}
+                {name}
               </div>
             </Link>
           ))}
@@ -253,7 +214,7 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
-          {popularItems.map((item) => (
+          {featuredProducts.map((item) => (
             <Link
               key={item.id}
               href={`/order?item=${item.id}`}
@@ -274,7 +235,7 @@ export default function Home() {
                   {item.name}
                 </h3>
                 <p className="text-sm text-[var(--ink)]/50 font-mono">
-                  ${item.price}
+                  ₦{item.price.toLocaleString()}
                 </p>
               </div>
             </Link>

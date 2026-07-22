@@ -2,6 +2,10 @@
 
 import { X, ShoppingBag } from "lucide-react";
 import { useCartStore } from "../store/store";
+import { useStartCheckout } from "../hooks/useStartCheckout";
+
+const formatNaira = (amount: number) =>
+  `₦${Math.round(amount).toLocaleString("en-NG")}`;
 
 export default function CartSidebar() {
   const isCartOpen = useCartStore((s) => s.isCartOpen);
@@ -10,6 +14,7 @@ export default function CartSidebar() {
   const removeItem = useCartStore((s) => s.removeItem);
   const changeQty = useCartStore((s) => s.changeQty);
   const subtotal = useCartStore((s) => s.subtotal());
+  const { startCheckout, starting, error } = useStartCheckout();
 
   return (
     <>
@@ -84,7 +89,7 @@ export default function CartSidebar() {
                       </button>
                     </div>
                     <span className="text-sm font-mono font-medium">
-                      ${(item.unitPrice * item.qty).toFixed(2)}
+                      {formatNaira(item.unitPrice * item.qty)}
                     </span>
                   </div>
                 </div>
@@ -96,14 +101,21 @@ export default function CartSidebar() {
         <div className="px-6 py-6 border-t border-dashed border-[var(--ink)]/25 shrink-0">
           <div className="flex items-center justify-between text-sm text-[var(--ink)]/50 mb-1">
             <span>Subtotal</span>
-            <span className="font-mono">${subtotal.toFixed(2)}</span>
+            <span className="font-mono">{formatNaira(subtotal)}</span>
           </div>
           <div className="flex items-center justify-between font-display text-xl font-medium text-[var(--ink)] mb-5">
             <span>Total</span>
-            <span className="font-mono">${subtotal.toFixed(2)}</span>
+            <span className="font-mono">{formatNaira(subtotal)}</span>
           </div>
-          <button className="w-full bg-[var(--ink)] text-[var(--paper)] py-3.5 rounded-full text-sm font-semibold hover:bg-black transition-colors">
-            Checkout
+          {error && (
+            <p className="text-xs text-[var(--red)] mb-3">{error}</p>
+          )}
+          <button
+            onClick={startCheckout}
+            disabled={items.length === 0 || starting}
+            className="w-full bg-[var(--ink)] text-[var(--paper)] py-3.5 rounded-full text-sm font-semibold hover:bg-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {starting ? "Starting checkout…" : "Checkout"}
           </button>
         </div>
       </aside>

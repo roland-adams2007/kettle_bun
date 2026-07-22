@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   Beef,
@@ -10,28 +10,39 @@ import {
   Soup,
   CupSoda,
   IceCreamCone,
+  Utensils,
   ArrowUpRight,
-  Search,
   ShoppingBag,
   Menu,
+  type LucideIcon,
 } from "lucide-react";
-import { useCartStore } from "../store/store";
+import { useCartStore, useCategoryStore } from "../store/store";
 
-const categories = [
-  { name: "Burgers", icon: Beef },
-  { name: "Pizza", icon: Pizza },
-  { name: "Sides", icon: Soup },
-  { name: "Drinks", icon: CupSoda },
-  { name: "Desserts", icon: IceCreamCone },
-];
+// Maps a category name to an icon; anything not listed here falls back to
+// a generic icon instead of breaking.
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  Burgers: Beef,
+  Pizza: Pizza,
+  Sides: Soup,
+  Drinks: CupSoda,
+  Desserts: IceCreamCone,
+};
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const openCart = useCartStore((s) => s.openCart);
   const isMobileNavOpen = useCartStore((s) => s.isMobileNavOpen);
   const toggleMobileNav = useCartStore((s) => s.toggleMobileNav);
   const cartCount = useCartStore((s) => s.count());
+
+  const { categories, fetchCategories } = useCategoryStore();
+  const fetchedRef = useRef(false);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    fetchCategories();
+  }, [fetchCategories]);
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--paper)]/90 backdrop-blur border-b border-[var(--line)]">
@@ -67,18 +78,27 @@ export default function Header() {
                   : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
               }`}
             >
-              {categories.map(({ name, icon: Icon }) => (
-                <Link
-                  key={name}
-                  href={`/order?category=${name}`}
-                  className="flex items-center justify-between px-5 py-2.5 hover:bg-[var(--paper)] text-sm"
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4 text-[var(--red)]" /> {name}
-                  </span>
-                  <ArrowUpRight className="w-3.5 h-3.5 text-[var(--ink)]/30" />
-                </Link>
-              ))}
+              {categories.length === 0
+                ? Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="px-5 py-2.5">
+                      <div className="h-4 w-24 rounded bg-[var(--ink)]/5 animate-pulse" />
+                    </div>
+                  ))
+                : categories.map((cat) => {
+                    const Icon = CATEGORY_ICONS[cat.name] ?? Utensils;
+                    return (
+                      <Link
+                        key={cat.id}
+                        href={`/order?category=${cat.id}`}
+                        className="flex items-center justify-between px-5 py-2.5 hover:bg-[var(--paper)] text-sm"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Icon className="w-4 h-4 text-[var(--red)]" /> {cat.name}
+                        </span>
+                        <ArrowUpRight className="w-3.5 h-3.5 text-[var(--ink)]/30" />
+                      </Link>
+                    );
+                  })}
             </div>
           </div>
           <Link
@@ -102,31 +122,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <button
-              onClick={() => setIsSearchOpen((v) => !v)}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-[var(--ink)]/60 hover:bg-black/5 transition-colors"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-            <div
-              className={`absolute top-full right-0 mt-4 w-72 bg-white rounded-2xl shadow-xl border border-[var(--line)] p-3 z-50 origin-top-right transition-all duration-200 ease-out ${
-                isSearchOpen
-                  ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-                  : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-              }`}
-            >
-              <div className="flex items-center gap-2 border border-[var(--line)] rounded-full px-4 py-2.5">
-                <Search className="w-4 h-4 text-[var(--ink)]/40" />
-                <input
-                  type="text"
-                  placeholder="Search the menu, press enter"
-                  className="flex-1 text-sm outline-none bg-transparent"
-                />
-              </div>
-            </div>
-          </div>
-
           <button
             onClick={openCart}
             className="relative flex items-center gap-2 bg-[var(--ink)] text-[var(--paper)] px-4 py-2.5 rounded-full text-sm font-medium hover:bg-black transition-colors"
@@ -163,15 +158,18 @@ export default function Header() {
                 : "opacity-0 -translate-y-2"
             }`}
           >
-            {categories.map(({ name, icon: Icon }) => (
-              <Link
-                key={name}
-                href={`/order?category=${name}`}
-                className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-black/5 text-sm font-medium"
-              >
-                <Icon className="w-4 h-4 text-[var(--red)]" /> {name}
-              </Link>
-            ))}
+            {categories.map((cat) => {
+              const Icon = CATEGORY_ICONS[cat.name] ?? Utensils;
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/order?category=${cat.id}`}
+                  className="flex items-center gap-2.5 px-2 py-2.5 rounded-xl hover:bg-black/5 text-sm font-medium"
+                >
+                  <Icon className="w-4 h-4 text-[var(--red)]" /> {cat.name}
+                </Link>
+              );
+            })}
             <div className="border-t border-[var(--line)] my-2" />
             <Link
               href="/order"
